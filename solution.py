@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 
-
+torch.cuda.empty_cache()
 train = pd.read_csv('train.csv')
 test = pd.read_csv('test.csv')
 train.drop(["id","f0", "f6", "f12", "f13", "f18", "f29", "f38", "f39", "f46", "f52", "f59", "f63", "f65", "f72", "f73", "f74", "f79", "f85", "f86", "f87", "f89", "f92", "f93"], axis=1, inplace=True)
@@ -34,8 +34,8 @@ X = scaler.fit_transform(X)
 test = scaler.fit_transform(test)
 print('input is standardized')
 
-EPOCHS = 20
-BATCH_SIZE = 100000
+EPOCHS = 50
+BATCH_SIZE = 15000
 LEARNING_RATE = 0.001
 
 class TrainData(Dataset):
@@ -62,16 +62,15 @@ class TestData(Dataset):
 
     def __len__(self):
         return len(self.X)
-temp_X, temp_y = X.values, y.values
+
 test_data = TestData(torch.FloatTensor(test))
-train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(temp_X), torch.from_numpy(temp_y))
 
 
-train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+train_loader = DataLoader(dataset=train_data, batch_size=BATCH_SIZE, shuffle=True)
 
 print('train_loader completed')
 
-test_loader = DataLoader(dataset=test, batch_size=1)
+test_loader = DataLoader(dataset=test_data, batch_size=1)
 
 print('test_loader completed')
 
@@ -151,11 +150,13 @@ with torch.no_grad():
         y_pred_tag = torch.round(y_test_pred)
         y_pred_list.append(y_pred_tag.cpu().numpy())
 
-y_pred_list = [a.squeeze.tolist() for a in y_pred_list]
 
-confusion_matrix(y, y_pred_list)
+y_pred_list = [a.squeeze().tolist() for a in y_pred_list]
 
-print(classification_report(y, y_pred_list))
+
+
+
+
 
 
 
@@ -163,6 +164,7 @@ print(classification_report(y, y_pred_list))
 
 sub = pd.read_csv('sample_submission.csv')
 sub['target'] = y_pred_list
+print(sub)
 sub.to_csv('submission.csv', index=False)
 
 
